@@ -1,35 +1,49 @@
 import praw
 
-subredditName = 'BotTestingPlace'
-hotWord = '!roast score'
+BOT_NAME = 'luke_bot'
+SUBREDDIT_NAMES = [
+    'testlukebot',
+]
+HOT_WORD = '!roast my resume'
+BLACKLISTED_USERS = [
+    "Luke_Stone_",
+]
+LAST_CHECK = 1623580136.0
 
 
-def login(botName='luke_bot'):
+def login(botName=BOT_NAME):
     return praw.Reddit(botName)
 
 
-def getNewItems(subreddit, limit=None, hotWord=hotWord):
+def getNewSubmissions(subreddit, limit=None, hotWord=HOT_WORD, afterUtc=LAST_CHECK):
     if limit:
-        allNewItems = subreddit.new(limit=limit)
+        allNewSubmissions = subreddit.new(limit=limit)
     else:
-        allNewItems = subreddit.new()
+        allNewSubmissions = subreddit.new()
 
-    # Return all new item if there is no hotword filter
-    if not hotWord:
-        return allNewItems
+    submissions = []
+    # Return filterd new submissions whose title or text contains the hotword
+    for submission in allNewSubmissions:
+        if (submission.created_utc <= LAST_CHECK):
+            break
+        elif (hotWord == submission.title[:len(hotWord)] and not any([submission.author in BLACKLISTED_USERS])):
+            submissions.append(submission)
+    return submissions
 
-    items = []
-    # Return filterd new items whose title or text contains the hotword
-    for item in subreddit.new(limit=limit):
-        if any((hotWord in item.title, hotWord in item.selftext)):
-            items.append(item)
-    return items
+
+def printSubmission(submissions):
+    for submission in submissions:
+        print(submission.title, "-", submission.created_utc, "-", submission.selftext, "-", submission.author)
+    print("---END---\n")
+
 
 
 def reziBot():
     reddit = login()
-    subreddit = reddit.subreddit(subredditName)
-    items = getNewItems(subreddit=subreddit, limit=100, hotWord=None)
+    for subredditName in SUBREDDIT_NAMES:
+        subreddit = reddit.subreddit(subredditName)
+        submissions = getNewSubmissions(subreddit=subreddit, hotWord='')
+        # printSubmission(submissions)
 
 
 if __name__ == '__main__':
