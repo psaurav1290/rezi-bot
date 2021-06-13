@@ -16,65 +16,69 @@ def login(botName=BOT_NAME):
     return praw.Reddit(botName)
 
 
-def getNewSubmissions(subreddit, limit=None, hotWord=HOT_WORD, afterUtc=LAST_CHECK):
+def getNewSubmissions(subreddit, limit=None):
     if limit:
         allNewSubmissions = subreddit.new(limit=limit)
     else:
         allNewSubmissions = subreddit.new()
-
-    submissions = []
-    # Return filterd new submissions whose title or text contains the hotword
-    for submission in allNewSubmissions:
-        if (submission.created_utc <= LAST_CHECK):
-            break
-        elif (hotWord == submission.title[:len(hotWord)] and not any([submission.author in BLACKLISTED_USERS])):
-            submissions.append(submission)
-    return submissions
+    return allNewSubmissions
 
 
-def getDataFromSubmissions(submissions):
-    returnList = []
-    for submission in submissions:
-        if (submission.selftext==''):
-            returnList.append({
-                'type': 'invalid',
-                'object': submission
-            })
-        elif (submission.selftext.strip()[:4] == 'http'):
-            returnList.append({
-                'type': 'url',
-                'data': submission.selftext.strip(),
-                'object': submission
-            })
-        else:
-            returnList.append({
-                'type': 'text',
-                'data': submission.selftext.strip(),
-                'object': submission
-            })
-    return returnList
+def getDataFromSubmission(submission):
+    if (submission.selftext == ''):
+        returnData = {
+            'type': 'invalid',
+            'object': submission
+        }
+    elif (submission.selftext.strip()[:4] == 'http'):
+        returnData = {
+            'type': 'url',
+            'data': submission.selftext.strip(),
+            'object': submission
+        }
+    else:
+        returnData = {
+            'type': 'text',
+            'data': submission.selftext.strip(),
+            'object': submission
+        }
+    return returnData
 
 
 def commentToSubmission(submission, message):
     submission.reply(message)
 
 
-def printSubmission(submissions):
+def printSubmission(submission):
+    print(submission.title, submission.selftext or submission.url, submission.selftext_html, end="\n\n", sep='\n')
+
+
+def processSubmissions(submissions, hotWord=HOT_WORD, afterUtc=LAST_CHECK):
     for submission in submissions:
-        submission = submission['object']
-        print(submission.title, submission.selftext or submission.url, submission.selftext_html, end="\n\n", sep='\n')
-    print('\n\t---END---\n')
+        # Filtering on the basis of LAST_CHECKED
+        if (submission.created_utc <= afterUtc):
+            break
+        # Filtering for HOT_WORD and BLACKLISTED_USERS
+        if all([hotWord == submission.title,submission.author not in BLACKLISTED_USERS]):
+            submission = getDataFromSubmission(submission)
+            if (submission['type']=='invalid'):
+                commentToSubmission(submission['object'], "Please follow the format that bot understands.")
+            elif (submission['type']=='text'):
+                pass
+            elif (submission['type']=='text'):
+                pass
+
+            printSubmission(submission['object'])
 
 
 def reziBot():
     reddit = login()
     for subredditName in SUBREDDIT_NAMES:
         subreddit = reddit.subreddit(subredditName)
-        submissions = getNewSubmissions(subreddit=subreddit)
-        if len(submissions) == 0:
-            continue
-        submissions = getDataFromSubmissions(submissions)
-        printSubmission(submissions)
+        submissions = subreddit.new()
+        processSubmissions(submissions)
+        print('\n\t---END---\n')
+        
 
 
 if __name__ == '__main__':
