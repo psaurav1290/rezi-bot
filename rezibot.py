@@ -31,6 +31,10 @@ def getNewSubmissions(subreddit, limit=None, hotWord=HOT_WORD, afterUtc=LAST_CHE
     return submissions
 
 
+def commentToSubmission(submission, message):
+    submission.reply(message)
+
+
 def printSubmission(submissions):
     for submission in submissions:
         print(submission.title, "-", submission.created_utc, "-", submission.selftext, "-", submission.author)
