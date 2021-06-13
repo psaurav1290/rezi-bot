@@ -1,0 +1,10 @@
+{ 
+  "blacklisted_users": [
+    "Luke_Stone_"
+  ],
+  "bot_name": "luke_bot",
+  "hot_word": "!roast my resume",
+  "subreddits": [
+    "testlukebot"
+  ]
+}

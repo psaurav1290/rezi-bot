@@ -1,18 +1,39 @@
 import praw
-
-BOT_NAME = 'luke_bot'
-SUBREDDIT_NAMES = [
-    'testlukebot',
-]
-HOT_WORD = '!roast my resume'
-# HOT_WORD = ''
-BLACKLISTED_USERS = [
-    'Luke_Stone_',
-]
-LAST_CHECK = 1623580136.0
+import json
 
 
-def login(botName=BOT_NAME):
+def getConfigFromFile(fileName='config.json'):
+    # Gets data from the config.json file
+    try:
+        with open(fileName, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"Error: {fileName} not found!")
+        return None
+
+
+def getDataFromFile(botConfig, dataFileName='data.json'):
+    # Gets data from the data.json file
+    try:
+        with open(dataFileName, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        botData = {
+            "last_checked": {
+            }
+        }
+        for subreddit in botConfig['subreddits']:
+            botData['last_checked'][subreddit] = 0.0
+        return botData
+
+
+def writeDataToFile(botData, dataFileName='data.json'):
+    json_object = json.dumps(botData, indent=4)
+    with open(dataFileName, 'w') as dataFile:
+        dataFile.write(json_object)
+
+
+def login(botName):
     return praw.Reddit(botName)
 
 
@@ -24,25 +45,21 @@ def getNewSubmissions(subreddit, limit=None):
     return allNewSubmissions
 
 
-def getDataFromSubmission(submission):
+def invalidSubmissionAction(submission):
+    commentToSubmission(submission['object'], "Please follow the format that bot understands.")
+    print("Please follow the format that bot understands.")
+
+
+def submissionAction(submission):
     if (submission.selftext == ''):
-        returnData = {
-            'type': 'invalid',
-            'object': submission
-        }
+        # Invalid Submission
+        invalidSubmissionAction(submission)
     elif (submission.selftext.strip()[:4] == 'http'):
-        returnData = {
-            'type': 'url',
-            'data': submission.selftext.strip(),
-            'object': submission
-        }
+        # URL Submission
+        url = submission.selftext.strip()
     else:
-        returnData = {
-            'type': 'text',
-            'data': submission.selftext.strip(),
-            'object': submission
-        }
-    return returnData
+        # Text Submission
+        text = submission.selftext.strip()
 
 
 def commentToSubmission(submission, message):
@@ -50,35 +67,44 @@ def commentToSubmission(submission, message):
 
 
 def printSubmission(submission):
-    print(submission.title, submission.selftext or submission.url, submission.selftext_html, end="\n\n", sep='\n')
+    print(submission.title, submission.selftext or submission.url, submission.created_utc, end="\n\n", sep='\n')
 
 
-def processSubmissions(submissions, hotWord=HOT_WORD, afterUtc=LAST_CHECK):
+def processSubmissions(submissions, hotWord, lastChecked, blacklistedUsers):
+    returnTime = None
+
     for submission in submissions:
+        if not returnTime:
+            returnTime = submission.created_utc
         # Filtering on the basis of LAST_CHECKED
-        if (submission.created_utc <= afterUtc):
+        if (submission.created_utc <= lastChecked):
             break
         # Filtering for HOT_WORD and BLACKLISTED_USERS
-        if all([hotWord == submission.title,submission.author not in BLACKLISTED_USERS]):
-            submission = getDataFromSubmission(submission)
-            if (submission['type']=='invalid'):
-                commentToSubmission(submission['object'], "Please follow the format that bot understands.")
-            elif (submission['type']=='text'):
-                pass
-            elif (submission['type']=='text'):
-                pass
+        if all([hotWord == submission.title.lower(), submission.author not in blacklistedUsers]):
+            submissionAction(submission)
+            printSubmission(submission)
 
-            printSubmission(submission['object'])
+        # return submission.created_utc
+
+    return returnTime
 
 
 def reziBot():
-    reddit = login()
-    for subredditName in SUBREDDIT_NAMES:
+    botConfig = getConfigFromFile()
+    if not botConfig:
+        return
+    botData = getDataFromFile(botConfig)
+
+    reddit = login(botConfig['bot_name'])
+    for subredditName in botConfig['subreddits']:
         subreddit = reddit.subreddit(subredditName)
         submissions = subreddit.new()
-        processSubmissions(submissions)
+        checkedTime = processSubmissions(submissions, hotWord=botConfig['hot_word'], lastChecked=botData['last_checked'][subredditName], blacklistedUsers=botConfig['blacklisted_users'])
+        if checkedTime:
+            botData['last_checked'][subredditName] = checkedTime
         print('\n\t---END---\n')
-        
+
+    writeDataToFile(botData)
 
 
 if __name__ == '__main__':
