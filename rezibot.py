@@ -5,8 +5,9 @@ SUBREDDIT_NAMES = [
     'testlukebot',
 ]
 HOT_WORD = '!roast my resume'
+# HOT_WORD = ''
 BLACKLISTED_USERS = [
-    "Luke_Stone_",
+    'Luke_Stone_',
 ]
 LAST_CHECK = 1623580136.0
 
@@ -31,23 +32,49 @@ def getNewSubmissions(subreddit, limit=None, hotWord=HOT_WORD, afterUtc=LAST_CHE
     return submissions
 
 
+def getDataFromSubmissions(submissions):
+    returnList = []
+    for submission in submissions:
+        if (submission.selftext==''):
+            returnList.append({
+                'type': 'invalid',
+                'object': submission
+            })
+        elif (submission.selftext.strip()[:4] == 'http'):
+            returnList.append({
+                'type': 'url',
+                'data': submission.selftext.strip(),
+                'object': submission
+            })
+        else:
+            returnList.append({
+                'type': 'text',
+                'data': submission.selftext.strip(),
+                'object': submission
+            })
+    return returnList
+
+
 def commentToSubmission(submission, message):
     submission.reply(message)
 
 
 def printSubmission(submissions):
     for submission in submissions:
-        print(submission.title, "-", submission.created_utc, "-", submission.selftext, "-", submission.author)
-    print("---END---\n")
-
+        submission = submission['object']
+        print(submission.title, submission.selftext or submission.url, submission.selftext_html, end="\n\n", sep='\n')
+    print('\n\t---END---\n')
 
 
 def reziBot():
     reddit = login()
     for subredditName in SUBREDDIT_NAMES:
         subreddit = reddit.subreddit(subredditName)
-        submissions = getNewSubmissions(subreddit=subreddit, hotWord='')
-        # printSubmission(submissions)
+        submissions = getNewSubmissions(subreddit=subreddit)
+        if len(submissions) == 0:
+            continue
+        submissions = getDataFromSubmissions(submissions)
+        printSubmission(submissions)
 
 
 if __name__ == '__main__':
