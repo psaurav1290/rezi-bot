@@ -1,5 +1,9 @@
 import praw
 import json
+import re
+from utils.downloadfile import downloadDriveFile
+from utils.callapi import getReziScore
+import time
 
 
 def getConfigFromFile(fileName='config.json'):
@@ -45,29 +49,64 @@ def getNewSubmissions(subreddit, limit=None):
     return allNewSubmissions
 
 
-def invalidSubmissionAction(submission):
-    commentToSubmission(submission['object'], "Please follow the format that bot understands.")
-    print("Please follow the format that bot understands.")
+def invalidSubmissionAction(submission, description=None):
+    commentToSubmission(submission, f"Please follow the format that bot understands. {description}")
+    print(f"Please follow the format that bot understands. {description}")
+
+
+def sendScoreAction(submission, score):
+    commentToSubmission(submission, f"Your resume score is {score}%.")
+    print(f"Your resume score ris {score}%.")
 
 
 def submissionAction(submission):
     if (submission.selftext == ''):
         # Invalid Submission
-        invalidSubmissionAction(submission)
-    elif (submission.selftext.strip()[:4] == 'http'):
-        # URL Submission
-        url = submission.selftext.strip()
+        invalidSubmissionAction(submission, "Write the resume url in the post body.")
     else:
-        # Text Submission
-        text = submission.selftext.strip()
+        urlRegEx = re.compile(('href="\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)"'))
+        match = re.search(urlRegEx, submission.selftext_html)
+        if match:
+            # URL Submission
+            URL = submission.selftext_html[match.span()[0]:match.span()[1]][6:-1]
+
+            # Drive ID extraction
+            driveRegEx = re.compile(('/\\b[-a-zA-Z0-9@:%._\\+~#?&=]{33}\\b'))
+            match = re.search(driveRegEx, URL)
+            if match:
+                fileID = URL[match.span()[0]+1:match.span()[1]]
+                file = downloadDriveFile(fileID)
+                if file:
+                    score = getReziScore(file)
+                    if score:
+                        score = float(score[:6])*100
+                        sendScoreAction(submission, score)
+                    else:
+                        invalidSubmissionAction(submission, "Could not fetch your score!")
+                else:
+                    invalidSubmissionAction(submission, "Could not fetch your resume!")
+
+            else:
+                # Invalid Submission
+                invalidSubmissionAction(submission, "Currently we accept Google Drive share links only.")
+
+        else:
+            # Invalid Submission
+            invalidSubmissionAction(submission, "No URL found in the post body.")
 
 
 def commentToSubmission(submission, message):
     submission.reply(message)
 
 
+def deleteAllComments(submission):
+    for comment in submission.comments:
+        print('deleting')
+        comment.delete()
+
+
 def printSubmission(submission):
-    print(submission.title, submission.selftext or submission.url, submission.created_utc, end="\n\n", sep='\n')
+    print(submission.title, submission.selftext_html, end="\n\n", sep='\n')
 
 
 def processSubmissions(submissions, hotWord, lastChecked, blacklistedUsers):
@@ -83,8 +122,7 @@ def processSubmissions(submissions, hotWord, lastChecked, blacklistedUsers):
         if all([hotWord == submission.title.lower(), submission.author not in blacklistedUsers]):
             submissionAction(submission)
             printSubmission(submission)
-
-        # return submission.created_utc
+            # deleteAllComments(submission)
 
     return returnTime
 
@@ -108,4 +146,6 @@ def reziBot():
 
 
 if __name__ == '__main__':
-    reziBot()
+    for i in range(6):
+        reziBot()
+        time.sleep(5)

@@ -3,3 +3,4 @@
 *.ini
 /test/
 *.pdf
+__pycache__/
