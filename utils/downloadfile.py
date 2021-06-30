@@ -1,20 +1,26 @@
 from io import BytesIO
 import requests
 
+
 def save_file_to_buffer(response):
     CHUNK_SIZE = 32768
     file = BytesIO()
-    with open('e:/Coding/08-Python/03-reddit-bot-rezi.ai/test/new.pdf', 'wb') as diskFile:
-        for chunk in response.iter_content(CHUNK_SIZE):
-            if chunk:
-                file.write(chunk)
-                diskFile.write(chunk)
+    for chunk in response.iter_content(CHUNK_SIZE):
+        if chunk:
+            file.write(chunk)
     return file
 
 
 def downloadDriveFile(fileID):
     URL = 'https://docs.google.com/uc?export=download'
-    response = requests.get(URL, params={'id':fileID}, stream=True)
+    response = requests.get(URL, params={'id': fileID}, stream=True)
     if response.status_code == requests.codes.ok:
-      return save_file_to_buffer(response)
-    return None
+        fileSize = int(response.headers['Content-Length'])
+        if fileSize == 0:
+            raise ValueError("The file should be smaller than 2MB.")
+        if fileSize > 2097152:
+            raise ValueError("The file should be smaller than 2MB.")
+        else:
+            return save_file_to_buffer(response)
+    else:
+        raise FileExistsError("Could not fetch your resume!")
