@@ -51,15 +51,41 @@ def getNewSubmissions(subreddit, limit=None):
     return allNewSubmissions
 
 
-def invalidSubmissionAction(submission, description=None):
-    commentToSubmission(submission, f"{description}")
+def processSubmissions(submissions, hotWord, lastChecked, blacklistedUsers):
+    returnTime = None
+
+    for submission in submissions:
+        if not returnTime:
+            returnTime = submission.created_utc
+        # Filtering on the basis of LAST_CHECKED
+        if (submission.created_utc <= lastChecked):
+            break
+        # Filtering for HOT_WORD and BLACKLISTED_USERS
+        if all([hotWord == submission.title.lower(), submission.author not in blacklistedUsers]):
+            submissionAction(submission)
+            # printSubmission(submission)
+            # deleteAllComments(submission)
+
+    return returnTime
 
 
-def sendScoreAction(submission, score):
-    commentToSubmission(submission, f"Your resume score is {score}%.")
+def submissionAction(submission):
+    if submission.selftext_html:
+        match = re.search(urlRegEx, submission.selftext_html)
+        if match:
+            validSubmission(submission.selftext_html, match.span()[0], submission)
+            return
+
+    match = re.search(urlRegEx, str(submission.url))
+    if match:
+        validSubmission(submission.url, match.span()[0], submission)
+        return
+
+    # Invalid Submission
+    invalidSubmissionAction(submission, "No Google Drive share link found in the post.")
 
 
-def urlFound(matchString, matchAt, submission):
+def validSubmission(matchString, matchAt, submission):
     # URL Submission
     fileID = matchString[matchAt+32:matchAt+65]
     try:
@@ -75,20 +101,12 @@ def urlFound(matchString, matchAt, submission):
         invalidSubmissionAction(submission, "Could not fetch your resume! Some unknown error occured.")
 
 
-def submissionAction(submission):
-    if submission.selftext_html:
-        match = re.search(urlRegEx, submission.selftext_html)
-        if match:
-            urlFound(submission.selftext_html, match.span()[0], submission)
-            return
+def invalidSubmissionAction(submission, description=None):
+    commentToSubmission(submission, f"{description}")
 
-    match = re.search(urlRegEx, str(submission.url))
-    if match:
-        urlFound(submission.url, match.span()[0], submission)
-        return
 
-    # Invalid Submission
-    invalidSubmissionAction(submission, "No Google Drive share link found in the post.")
+def sendScoreAction(submission, score):
+    commentToSubmission(submission, f"Your resume score is {score}%.")
 
 
 def commentToSubmission(submission, message):
@@ -107,24 +125,6 @@ def printSubmission(submission):
     print('url:', submission.url)
     print('created_utc:', submission.created_utc)
     print('\n')
-
-
-def processSubmissions(submissions, hotWord, lastChecked, blacklistedUsers):
-    returnTime = None
-
-    for submission in submissions:
-        if not returnTime:
-            returnTime = submission.created_utc
-        # Filtering on the basis of LAST_CHECKED
-        if (submission.created_utc <= lastChecked):
-            break
-        # Filtering for HOT_WORD and BLACKLISTED_USERS
-        if all([hotWord == submission.title.lower(), submission.author not in blacklistedUsers]):
-            submissionAction(submission)
-            # printSubmission(submission)
-            # deleteAllComments(submission)
-
-    return returnTime
 
 
 def reziBot():

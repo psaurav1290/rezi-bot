@@ -22,7 +22,6 @@ def downloadDriveFile(fileID):
         fileSize = response.headers.get('Content-Length')
         if(fileSize):
             fileSize = int(fileSize)
-            print(fileSize)
             if fileSize == 0:
                 raise ValueError("The resume file is blank!")
             if fileSize > TOO_LARGE:
