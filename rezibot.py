@@ -52,7 +52,7 @@ def getNewSubmissions(subreddit, limit=None):
 
 
 def invalidSubmissionAction(submission, description=None):
-    commentToSubmission(submission, f"{description}\nPlease enter the link in the format https://drive.google.com/file/d/<33 character fileID>/...")
+    commentToSubmission(submission, f"{description}")
 
 
 def sendScoreAction(submission, score):
