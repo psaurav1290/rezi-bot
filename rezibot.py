@@ -1,11 +1,39 @@
 import praw
 import json
 import re
-from utils.downloadfile import downloadDriveFile
-from utils.callapi import getReziScore
+import requests
+
+from requests.sessions import session
+from utils.downloadfile import downloadDriveFile, downloadDriveFileAsyncio
+from utils.callapi import getReziScore, getReziScoreAsyncio
 import time
 
+
+import concurrent.futures
+import requests
+import threading
+
+from collections import deque
+
 urlRegEx = re.compile(('https://drive.google.com/file/d/' + '\\b[-a-zA-Z0-9@:%._\\+~#?&=]{33}\\b' + '([-a-zA-Z0-9@:%._\\+~#?&//=]*)'))
+MAX_CONNECTIONS = 5
+
+
+def reziBot():
+    botConfig = getConfigFromFile()
+    if not botConfig:
+        return
+    botData = getDataFromFile(botConfig)
+
+    reddit = login(botConfig['bot_name'])
+    for subredditName in botConfig['subreddits']:
+        subreddit = reddit.subreddit(subredditName)
+        submissions = subreddit.new()
+        checkedTime = processSubmissions(submissions, hotWord=botConfig['hot_word'], lastChecked=botData['last_checked'][subredditName], blacklistedUsers=botConfig['blacklisted_users'])
+        if checkedTime: 
+            botData['last_checked'][subredditName] = checkedTime
+
+    # writeDataToFile(botData)
 
 
 def getConfigFromFile(fileName='config.json'):
@@ -51,21 +79,25 @@ def getNewSubmissions(subreddit, limit=None):
     return allNewSubmissions
 
 
+# ============= Post Process Thread =============
 def processSubmissions(submissions, hotWord, lastChecked, blacklistedUsers):
     returnTime = None
+    count = 0
 
     for submission in submissions:
         if not returnTime:
             returnTime = submission.created_utc
-        # Filtering on the basis of LAST_CHECKED
+        # Breaking operation if LAST_CHECKED submission is reached
         if (submission.created_utc <= lastChecked):
             break
-        # Filtering for HOT_WORD and BLACKLISTED_USERS
-        if all([hotWord == submission.title.lower(), submission.author not in blacklistedUsers]):
+        # Filtering on the basis HOT_WORD and BLACKLISTED_USERS
+        if all([hotWord == submission.title.lower()[:16], submission.author not in blacklistedUsers]):
             submissionAction(submission)
-            # printSubmission(submission)
-            # deleteAllComments(submission)
+        count += 1
+        if count == 2:
+            break
 
+    performThreadedDownload()
     return returnTime
 
 
@@ -88,17 +120,46 @@ def submissionAction(submission):
 def validSubmission(matchString, matchAt, submission):
     # URL Submission
     fileID = matchString[matchAt+32:matchAt+65]
+    fileIDs.append(fileID)
+    allSubmissions.append(submission)
+# ____ end Post Process Thread ____
+
+
+fileIDs = []
+allSubmissions = []
+
+
+# ============= Threading =============
+thread_local = threading.local()
+
+
+def get_session():
+    if not hasattr(thread_local, "session"):
+        thread_local.session = requests.Session()
+    return thread_local.session
+
+
+def performThreadedDownload():
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONNECTIONS) as executor:
+        executor.map(asyncTask, allSubmissions, fileIDs)
+
+
+def asyncTask(submission, fileID):
     try:
-        file = downloadDriveFile(fileID)
-        score = getReziScore(file)
+        session = get_session()
+        file = downloadDriveFile(fileID, session)
+        print(fileID)
+        score = getReziScore(file, session)
         score = round(float(score)*100, 2)
         sendScoreAction(submission, score)
     except ValueError as errorMessage:
         invalidSubmissionAction(submission, errorMessage)
     except FileExistsError as errorMessage:
         invalidSubmissionAction(submission, errorMessage)
-    except:
-        invalidSubmissionAction(submission, "Could not fetch your resume! Some unknown error occured.")
+    # except:
+    #     invalidSubmissionAction(submission, "Could not fetch your resume! Some unknown error occured.")
+
+# ____ end Threading ____
 
 
 def invalidSubmissionAction(submission, description=None):
@@ -127,24 +188,8 @@ def printSubmission(submission):
     print('\n')
 
 
-def reziBot():
-    botConfig = getConfigFromFile()
-    if not botConfig:
-        return
-    botData = getDataFromFile(botConfig)
-
-    reddit = login(botConfig['bot_name'])
-    for subredditName in botConfig['subreddits']:
-        subreddit = reddit.subreddit(subredditName)
-        submissions = subreddit.new()
-        checkedTime = processSubmissions(submissions, hotWord=botConfig['hot_word'], lastChecked=botData['last_checked'][subredditName], blacklistedUsers=botConfig['blacklisted_users'])
-        if checkedTime:
-            botData['last_checked'][subredditName] = checkedTime
-
-    # writeDataToFile(botData)
-
-
 if __name__ == '__main__':
+    start = time.time()
     reziBot()
-    # for i in range(6):
-    #     time.sleep(5)
+    end = time.time()
+    print('\n______', '\nTime elapsed:', end-start, 'seconds.', '\n______\n',)

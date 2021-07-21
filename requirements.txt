@@ -1,19 +1,19 @@
-aiohttp==3.7.4.post0 # asyncio
-async-timeout==3.0.1 # asyncio
-attrs==21.2.0 # asyncio
-autopep8==1.5.7 #styling
-certifi==2020.12.5 # Python Reddit Api Wrapper
-chardet==4.0.0 # Python Reddit Api Wrapper
-idna==2.10 # Python Reddit Api Wrapper
-multidict==5.1.0 # asyncio
-praw==7.3.0 # Python Reddit Api Wrapper
-prawcore==2.2.0 # Python Reddit Api Wrapper
-pycodestyle==2.7.0 #styling
-requests==2.25.1 # Python Reddit Api Wrapper
-six==1.16.0 # Python Reddit Api Wrapper
-toml==0.10.2 # Python Reddit Api Wrapper
-update-checker==0.18.0 # Python Reddit Api Wrapper
-urllib3==1.26.4 # Python Reddit Api Wrapper
-websocket-client==0.59.0 # Python Reddit Api Wrapper
-typing-extensions==3.1 # asyncio
-yarl==1.6.3 # asyncio
+aiohttp==3.7.4.post0
+async-timeout==3.0.1
+attrs==21.2.0
+autopep8==1.5.7
+certifi==2020.12.5
+chardet==4.0.0
+idna==2.10
+multidict==5.1.0
+praw==7.3.0
+prawcore==2.2.0
+pycodestyle==2.7.0
+requests==2.25.1
+six==1.16.0
+toml==0.10.2
+typing-extensions==3.10.0.0
+update-checker==0.18.0
+urllib3==1.26.4
+websocket-client==0.59.0
+yarl==1.6.3
