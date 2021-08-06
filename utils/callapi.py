@@ -14,4 +14,4 @@ def getReziScore(file, session=None):
         else:
             raise ValueError("Could not fetch your score!")
     else:
-        raise FileExistsError("Resume file not found!")
+        raise FileNotFoundError("Resume file not found!")

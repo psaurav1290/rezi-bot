@@ -3,21 +3,24 @@ import json
 import re
 import requests
 
-from requests.sessions import session
-from utils.downloadfile import downloadDriveFile, downloadDriveFileAsyncio
-from utils.callapi import getReziScore, getReziScoreAsyncio
-import time
-
+from utils.downloadfile import downloadFromDriveClient
+from utils.callapi import getReziScore
 
 import concurrent.futures
-import requests
-import threading
+
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 
 from collections import deque
 
+import time
+
 urlRegEx = re.compile(('https://drive.google.com/file/d/' + '\\b[-a-zA-Z0-9@:%._\\+~#?&=]{33}\\b' + '([-a-zA-Z0-9@:%._\\+~#?&//=]*)'))
 MAX_CONNECTIONS = 5
-
+        
 
 def reziBot():
     botConfig = getConfigFromFile()
@@ -30,7 +33,7 @@ def reziBot():
         subreddit = reddit.subreddit(subredditName)
         submissions = subreddit.new()
         checkedTime = processSubmissions(submissions, hotWord=botConfig['hot_word'], lastChecked=botData['last_checked'][subredditName], blacklistedUsers=botConfig['blacklisted_users'])
-        if checkedTime: 
+        if checkedTime:
             botData['last_checked'][subredditName] = checkedTime
 
     # writeDataToFile(botData)
@@ -94,7 +97,7 @@ def processSubmissions(submissions, hotWord, lastChecked, blacklistedUsers):
         if all([hotWord == submission.title.lower()[:16], submission.author not in blacklistedUsers]):
             submissionAction(submission)
         count += 1
-        if count == 2:
+        if count == 10:
             break
 
     performThreadedDownload()
@@ -129,32 +132,55 @@ fileIDs = []
 allSubmissions = []
 
 
+def getCredentials():
+    SCOPES = [
+        # 'https://www.googleapis.com/auth/drive.metadata.readonly',
+        'https://www.googleapis.com/auth/drive.readonly'
+    ]
+
+    creds = None
+
+    # The file token.json stores the user's access and refresh tokens, and is created automatically when the authorization flow completes for the first time.
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+
+        # Save the credentials for the next run
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+
+    return creds
+
 # ============= Threading =============
-thread_local = threading.local()
-
-
-def get_session():
-    if not hasattr(thread_local, "session"):
-        thread_local.session = requests.Session()
-    return thread_local.session
-
-
 def performThreadedDownload():
-    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONNECTIONS) as executor:
-        executor.map(asyncTask, allSubmissions, fileIDs)
+    creds = getCredentials()
+    count = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # executor.map(asyncTask, allSubmissions, fileIDs, creds)
+        for submission,fileID in zip(allSubmissions, fileIDs):
+            count += 1
+            executor.submit(asyncTask, submission, fileID, creds, count)
+            # asyncTask(submission, fileID, creds)
 
 
-def asyncTask(submission, fileID):
+def asyncTask(submission, fileID, creds, count):
     try:
-        session = get_session()
-        file = downloadDriveFile(fileID, session)
-        print(fileID)
-        score = getReziScore(file, session)
+        start = time.time()
+        file = downloadFromDriveClient(fileID, creds)
+        print(count, time.time()-start)
+        score = getReziScore(file)
         score = round(float(score)*100, 2)
-        sendScoreAction(submission, score)
+        sendScoreAction(submission, f"{score} {count}")
     except ValueError as errorMessage:
         invalidSubmissionAction(submission, errorMessage)
-    except FileExistsError as errorMessage:
+    except FileNotFoundError as errorMessage:
         invalidSubmissionAction(submission, errorMessage)
     # except:
     #     invalidSubmissionAction(submission, "Could not fetch your resume! Some unknown error occured.")

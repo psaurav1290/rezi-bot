@@ -17,12 +17,13 @@ badlinks = [
 
 
 def runBot():
-    reddit = login('hello_post_creator')
+    reddit = login('luke_bot')
     reddit.validate_on_submit = True
     subreddit = reddit.subreddit('testlukebot')
     # deleteSubmissions(subreddit)
     # makeSubmissions(subreddit)
-    utcSubmissions(subreddit)
+    # utcSubmissions(subreddit)
+    deleteComments(subreddit)
 
 
 def login(botName):
@@ -50,6 +51,12 @@ def utcSubmissions(subreddit):
     for submission in subreddit.new():
         print(count, submission.created_utc)
         count += 1
+
+def deleteComments(subreddit):
+    for submission in subreddit.new():
+        for comment in submission.comments:
+            print(comment.body)
+            comment.delete()
 
 
 if __name__ == '__main__':
