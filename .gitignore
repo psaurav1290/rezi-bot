@@ -4,3 +4,5 @@
 /test/
 *.pdf
 __pycache__/
+client_secret.json
+token.json

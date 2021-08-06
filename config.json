@@ -3,6 +3,7 @@
     "Luke_Stone_"
   ],
   "bot_name": "luke_bot",
+  "debug": 1,
   "hot_word": "!roast my resume",
   "subreddits": [
     "testlukebot"
