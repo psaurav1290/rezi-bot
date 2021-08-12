@@ -1,10 +1,14 @@
 { 
+  "loops": 1,
   "blacklisted_users": [
     "Luke_Stone_"
   ],
   "bot_name": "luke_bot",
-  "debug": 1,
+  "debug": 0,
   "hot_word": "!roast my resume",
+  "limit": 1,
+  "max-thread": 20,
+  "sleep-time": 2.0,
   "subreddits": [
     "testlukebot"
   ]

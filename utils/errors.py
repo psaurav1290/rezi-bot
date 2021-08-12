@@ -33,7 +33,7 @@ class FileTooLarge(BotError):
     _MESSAGE = """The resume file too large."""
 
     def __init__(self, sizeLimit):
-        message = self._MESSAGE + f"The size limit of a good resume is {sizeLimit//1048576}MB."
+        message = self._MESSAGE + f" The size limit of a good resume is {sizeLimit//1048576}MB."
         super().__init__(message)
 
 
@@ -44,7 +44,7 @@ class DriveFileNotFound(BotError):
     """
     _MESSAGE = """Could not find your resume! Please review your file URL. Try one of the following ways-
 1. Go to your drive > Right click on resume pdf > Share > Change to anyone with this link > Copy Link
-2. Go to your drive > Right click on resume pdf > Share > Add Rezi gmail > Share/Send
+2. Go to your drive > Right click on resume pdf > Share > Add Rezi's Google ID > Share/Send
    Again right click on file > Get Link > Copy Link"""
 
     def __init__(self):
@@ -58,7 +58,7 @@ class DriveFileAccessDenied(BotError):
     """
     _MESSAGE = """Could not fetch your resume! Try one of the following ways-
 1. Go to your drive > Right click on resume pdf > Share > Change to anyone with this link > Copy Link
-2. Go to your drive > Right click on resume pdf > Share > Add Rezi gmail > Share/Send
+2. Go to your drive > Right click on resume pdf > Share > Add Rezi's Google ID > Share/Send
    Again right click on file > Get Link > Copy Link"""
 
     def __init__(self):

@@ -1,4 +1,5 @@
 import requests
+from os import getenv
 import os.path
 from pathlib import Path
 from googleapiclient.discovery import build
@@ -9,12 +10,13 @@ from googleapiclient.http import MediaIoBaseDownload, DEFAULT_CHUNK_SIZE
 from googleapiclient.errors import HttpError
 from io import BytesIO
 import re
+from dotenv import load_dotenv
 
 from requests import status_codes
 from utils.errors import DocdroidFileNotFound, FileTooLarge, FileTooSmall, DriveFileAccessDenied, DriveFileNotFound, ReziApiRequestError
 
 _MAX_FILE_SIZE = 2097152
-
+load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -30,7 +32,7 @@ class __Service(object):
 
 
 class _ReziService(object):
-    _api_endpoint = 'https://us-central1-rezi-3f268.cloudfunctions.net/scoreFromFile/'
+    _api_endpoint = getenv('REZI_API_ENDPOINT')
 
     def __init__(self, resume):
         self.score = None
@@ -75,10 +77,12 @@ class UnsupportedService(__Service):
 
 
 class DriveService(__Service):
-    _creds = None
+    PATTERN = re.compile(
+        r'(http|https)://drive.google.com/file/d/(\b[-a-zA-Z0-9_]{33}\b)[-a-zA-Z0-9@:%._+~#?&//=]*')
     _TOKEN_PATH = os.path.join(BASE_DIR, 'credentials', 'drive', 'token.json')
     _CLIENT_SECRET_PATH = os.path.join(
         BASE_DIR, 'credentials', 'drive', 'client_secret.json')
+    _creds = None
 
     def __init__(self, match):
         super().__init__()
@@ -139,7 +143,7 @@ class DriveService(__Service):
                 if file_size == 0:
                     raise FileTooSmall
                 if file_size > _MAX_FILE_SIZE:
-                    raise FileTooLarge
+                    raise FileTooLarge(_MAX_FILE_SIZE)
                 else:
                     return self._save_file_to_iobase(service)
             else:
@@ -164,6 +168,8 @@ class DriveService(__Service):
 
 
 class DocdroidService(__Service):
+    PATTERN = re.compile(
+        r'((http|https)://((docdro.id/)|www.docdroid.net/(file/download/)?))(\b[-a-zA-Z0-9]{7}\b/*[-a-zA-Z0-9@:%._+~#?&//=]*)')
     _creds = None
 
     def __init__(self, match):
