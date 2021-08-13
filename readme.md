@@ -1,7 +1,6 @@
+
 # [ReziBOT](https://github.com/psaurav1290/rezi-bot)
-**Author - [Saurav Priyadarshi](linkedin.com/in/sauravpriyadarshi90/)**
-This project was made on a freelance contract with **[Rezi | AI-Powerd Free ATS Resume Builder](https://www.rezi.ai/)**. This project helped me a lot in honing my OOP skills and writing clean modular code. I also learned how to write a good readme file. Also I accquired in-depth knowledge about achieving concurrency using multi-threading.
-***
+
 It is basic Reddit bot whose sole duty is to crawl across the given set of subreddits and find the hot-word. As soon as it get the hot-word it triggers the action of fetching the resume from the shared link, and commenting back the score of the resume. Currently the service supports only Google Drive and Docdroid share URLs whereas the modular structure of code allows to add any new service seamlessly.
 
 ### Key Features
@@ -78,22 +77,10 @@ The `/config.json` defines the behavior of the bot.
 *(Note- Keep this 0 to fetch maximum number of recent posts)*
 10. **maxThread**: Maximum number of threads that run simultaneously in the `ThreadPoolExecutor` to accomplish the task. This can be altered according to the production environment to achieve maximum efficiency.
 
-
 ## Basic Flow
+![(i) Flowchart of the event loop (ii) Lifecycle of Task Object](https://raw.githubusercontent.com/psaurav1290/rezi-bot/master/media/flowchart-1.png)
+## About the Author -
+This project was made on a freelance contract with **[Rezi | AI-Powerd Free ATS Resume Builder](https://www.rezi.ai/)**. This project helped me a lot in honing my skills and writing clean modular code. I also learned how to write a good readme file. I also discovered several aspecs of Object Oriented Programming, accquired in-depth knowledge about achieving concurrency using multi-threading, fetching files and API responses using requests.
 
-```mermaid
-graph TB
-
-S([Submission]) -.Gets Tasks.-> L((Event Loop))
-Q([TaskQueue])-.Generates queue.->L
-L ---> T(Task Manager)
-T ---> C((Sleep))
-C --Run loop again--> L
-subgraph ReziBot
-S
-Q
-L
-T
-C
-end
-```
+ Saurav Priyadarshi
+ [LinkedIn](linkedin.com/in/sauravpriyadarshi90/) | [Github](github.com/psaurav1290/)
