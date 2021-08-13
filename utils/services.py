@@ -20,19 +20,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-class __Service(object):
-    def __init__(self):
-        pass
-
-    def get_resume_score(self):
-        pass
-
-    def get_reply_message(self):
-        pass
-
-
-class _ReziService(object):
-    _api_endpoint = getenv('REZI_API_ENDPOINT')
+class ReziService_(object):
+    _api_endpoint = getenv('REZI_SCORE_API_ENDPOINT')
 
     def __init__(self, resume):
         self.score = None
@@ -44,8 +33,7 @@ class _ReziService(object):
 
     def _fetch_score(self, resume):
         if resume:
-            file_arg = {"resume": (
-                'resume.pdf', resume.getvalue(), 'application/pdf')}
+            file_arg = {"resume": ('resume.pdf', resume.getvalue(), 'application/pdf')}
             response = requests.post(self._api_endpoint, files=file_arg)
             if (response.status_code == requests.codes.ok):
                 self.score = self._format_score(response.text)
@@ -55,7 +43,7 @@ class _ReziService(object):
             raise FileTooSmall("Resume file not found!")
 
 
-class _CustomMediaIoBaseDownload(MediaIoBaseDownload):
+class MediaIoBaseDownload_(MediaIoBaseDownload):
     def __init__(self, fd, request, chunksize=DEFAULT_CHUNK_SIZE):
         super().__init__(fd, request, chunksize=chunksize)
 
@@ -63,10 +51,22 @@ class _CustomMediaIoBaseDownload(MediaIoBaseDownload):
         return self._progress
 
 
-class UnsupportedService(__Service):
-    _message = "No Google Drive share link found in the post."
-
+class Service_(object):
     def __init__(self):
+        pass
+
+    def get_resume_score(self):
+        pass
+
+    def get_reply_message(self):
+        pass
+
+
+class UnsupportedService_(Service_):
+    PATTERN = re.compile(r'[.\n]*')
+    _message = "No supported share link found in the post."
+
+    def __init__(self, match=None):
         pass
 
     def __str__(self):
@@ -76,12 +76,10 @@ class UnsupportedService(__Service):
         return self._message
 
 
-class DriveService(__Service):
-    PATTERN = re.compile(
-        r'(http|https)://drive.google.com/file/d/(\b[-a-zA-Z0-9_]{33}\b)[-a-zA-Z0-9@:%._+~#?&//=]*')
+class DriveService(Service_):
+    PATTERN = re.compile(r'(http|https)://drive.google.com/file/d/(\b[-a-zA-Z0-9_]{33}\b)[-a-zA-Z0-9@:%._+~#?&//=]*')
     _TOKEN_PATH = os.path.join(BASE_DIR, 'credentials', 'drive', 'token.json')
-    _CLIENT_SECRET_PATH = os.path.join(
-        BASE_DIR, 'credentials', 'drive', 'client_secret.json')
+    _CLIENT_SECRET_PATH = os.path.join(BASE_DIR, 'credentials', 'drive', 'client_secret.json')
     _creds = None
 
     def __init__(self, match):
@@ -103,8 +101,7 @@ class DriveService(__Service):
             if cls._creds and cls._creds.expired and cls._creds.refresh_token:
                 cls._creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    cls._CLIENT_SECRET_PATH, SCOPES)
+                flow = InstalledAppFlow.from_client_secrets_file(cls._CLIENT_SECRET_PATH, SCOPES)
                 cls._creds = flow.run_local_server(port=0)
 
             with open(cls._TOKEN_PATH, 'w') as token:
@@ -113,7 +110,7 @@ class DriveService(__Service):
     def _save_file_to_iobase(self, service):
         request = service.files().get_media(fileId=self._file_id)
         resume_file = BytesIO()
-        downloader = _CustomMediaIoBaseDownload(
+        downloader = MediaIoBaseDownload_(
             resume_file, request, chunksize=_MAX_FILE_SIZE)
         done = False
         while True:
@@ -127,8 +124,7 @@ class DriveService(__Service):
         return resume_file
 
     def _get_file_size(self, service):
-        request = service.files().get(fileId=self._file_id,
-                                      supportsAllDrives=True, fields='size')
+        request = service.files().get(fileId=self._file_id, supportsAllDrives=True, fields='size')
         return request.execute().get('size')
 
     def _download_resume(self):
@@ -160,14 +156,14 @@ class DriveService(__Service):
 
     def get_resume_score(self):
         resume = self._download_resume()
-        reziResume = _ReziService(resume)
+        reziResume = ReziService_(resume)
         self._score = reziResume.score
 
     def get_reply_message(self):
         return f"Your resume score is {self._score}%."
 
 
-class DocdroidService(__Service):
+class DocdroidService(Service_):
     PATTERN = re.compile(
         r'((http|https)://((docdro.id/)|www.docdroid.net/(file/download/)?))(\b[-a-zA-Z0-9]{7}\b/*[-a-zA-Z0-9@:%._+~#?&//=]*)')
     _creds = None
@@ -186,8 +182,7 @@ class DocdroidService(__Service):
         if match.group(4):
             self._redirecting_url = match.group()
         elif not match.group(5):
-            self._download_url = match.group(
-                1)+'file/download/'+match.group(6)+'.pdf'
+            self._download_url = match.group(1)+'file/download/'+match.group(6)+'.pdf'
         else:
             self._download_url = match.group()
 
@@ -211,19 +206,16 @@ class DocdroidService(__Service):
         redirected_url = requests.head(
             self._redirecting_url).headers.get('location')
         if redirected_url:
-            download_url_regex = re.compile(
-                r'((http|https)://www.docdroid.net/)(\b[-a-zA-Z0-9]{7}\b/[-a-zA-Z0-9@:%._+~#?&//=]*)')
+            download_url_regex = re.compile(r'((http|https)://www.docdroid.net/)(\b[-a-zA-Z0-9]{7}\b/[-a-zA-Z0-9@:%._+~#?&//=]*)')
             download_url_match = re.match(download_url_regex, redirected_url)
             if download_url_match:
-                self._download_url = download_url_match.group(
-                    1)+'file/download/'+download_url_match.group(3)+'.pdf'
+                self._download_url = download_url_match.group(1)+'file/download/'+download_url_match.group(3)+'.pdf'
 
     def _download_resume(self):
         if self._redirecting_url:
             self._get_redirected_url()
         if self._download_url:
-            downloader, file_size = self._get_file_downloader(
-                self._download_url)
+            downloader, file_size = self._get_file_downloader(self._download_url)
             if file_size:
                 file_size = int(file_size)
                 if file_size == 0:
@@ -239,7 +231,7 @@ class DocdroidService(__Service):
 
     def get_resume_score(self):
         resume = self._download_resume()
-        reziResume = _ReziService(resume)
+        reziResume = ReziService_(resume)
         self._score = reziResume.score
 
     def get_reply_message(self):

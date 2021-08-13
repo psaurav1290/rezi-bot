@@ -5,17 +5,14 @@ import time
 
 from utils.logger import Logger
 # Import new services defined in utils.services
-from utils.services import UnsupportedService, DriveService, DocdroidService
+from utils.services import UnsupportedService_
 
 
 class Task(Logger):
 
     _DEBUG_MODE = True
 
-    _services = [
-        DriveService,
-        DocdroidService
-    ]
+    SERVICES = []
 
     def __init__(self, submission):
         super().__init__(__name__, self._DEBUG_MODE)
@@ -30,13 +27,13 @@ class Task(Logger):
     def assign_service(self):
         text = self._submission.selftext_html or self._submission.url
 
-        for service in self._services:
+        for service in self.SERVICES:
             match = re.search(service.PATTERN, text)
             if match:
                 self._service = service(match)
                 return
-
-        self._service = UnsupportedService()
+                
+        self._service = UnsupportedService_()
 
     def _fetch_network_data(self):
         self._service.get_resume_score()

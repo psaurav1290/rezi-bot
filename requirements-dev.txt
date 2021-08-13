@@ -1,4 +1,4 @@
-# praw
+# Python Reddit API Wrapper
 certifi==2021.5.30
 charset-normalizer==2.0.4
 idna==3.2
@@ -9,7 +9,7 @@ update-checker==0.18.0
 urllib3==1.26.6
 websocket-client==1.2.0
 
-# google
+# Google API and Authorization
 cachetools==4.2.2
 google-api-core==1.31.1
 google-api-python-client==2.15.0
@@ -34,3 +34,6 @@ uritemplate==3.0.1
 autopep8==1.5.7
 pycodestyle==2.7.0
 toml==0.10.2
+
+# Environment Variables
+python-dotenv==0.19.0

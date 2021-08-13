@@ -2,6 +2,30 @@ class BotError(Exception):
     pass
 
 
+class ConfigFileNotFound(BotError):
+    """The config.json file not found at th given path.
+    Args:
+        filePath: Path of the config file.
+    """
+    _MESSAGE = """The config.json file not found at """
+
+    def __init__(self, filePath):
+        message = self._MESSAGE + filePath
+        super().__init__(message)
+
+
+class DataFileNotFound(BotError):
+    """The data.json file not found at th given path.
+    Args:
+        filePath: Path of the data file.
+    """
+    _MESSAGE = """The data.json file not found at """
+
+    def __init__(self, filePath):
+        message = self._MESSAGE + filePath
+        super().__init__(message)
+
+
 class ReziApiRequestError(BotError):
     """Raised when requesting Rezi Score API endpoint returns a non OK status code.
     Args:
