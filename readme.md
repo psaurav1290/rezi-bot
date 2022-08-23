@@ -59,8 +59,7 @@ Example of a  `/praw.ini` file-
 Using step 3 and 4 of [Python Quickstart | Google Drive API](https://developers.google.com/drive/api/v3/quickstart/python#prerequisites) get the *client_secret.json*. Precisely
 1. [create a project and enable the drive API](https://developers.google.com/workspace/guides/create-project) followed by
 2. [configuring the OAuth consent screen](https://developers.google.com/workspace/guides/create-credentials#configure_the_oauth_consent_screen) and
-3. [creating the OAuth client ID credential](https://developers.google.com/workspace/guides/create-credentials#create_a_oauth_client_id_credential) for a 
-4. [web application](https://developers.google.com/workspace/guides/create-credentials#web).
+3. Creating the OAuth client ID credential for a [web application](https://developers.google.com/workspace/guides/create-credentials#web-application).
 
 Place the client secret JSON file in `/credentials/drive/client_secret.json`.
 
